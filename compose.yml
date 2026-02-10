@@ -2,21 +2,26 @@ services:
   server:
     build: .
     ports:
-      - 8000:5000
+      - 5000:5000
     environment:
-      - MINIO_SERVER_ACCESS_KEY=minio-access-key
-      - MINIO_SERVER_SECRET_KEY=minio-secret-key
+      MINIO_SERVER_ACCESS_KEY: minio-access-key
+      MINIO_SERVER_SECRET_KEY: minio-secret-key
+    volumes:
+      - ./storage/secret.json:/root/secret.json
   valkey:
     image: "valkey/valkey:9"
     restart: always
-    ports:
-      - 6379:6379
+    expose:
+      - 6379
   mongo:
     image: "mongo:8"
     restart: always
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: 12345
+      MONGO_INITDB_ROOT_USERNAME: wyvern
+      MONGO_INITDB_ROOT_PASSWORD: wyvern
+      MONGO_INITDB_DATABASE: wyvern
+    expose:
+      - 27017
   mongo-express:
     image: mongo-express
     restart: always
