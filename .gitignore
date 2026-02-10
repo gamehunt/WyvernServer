@@ -1,0 +1,35 @@
+storage/*/*
+!storage/*/.gitkeep
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (uncomment to include)
+# vendor/
+
+# Project-local glide or godep dependencies
+# vendor/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# IDE-specific files and directories (optional, consider adding to a global gitignore instead)
+.idea/ # For GoLand/IntelliJ
+.vscode/ # For VS Code
+.settings/
+.project
+.classpath
+
+# OS/System-specific files
+.DS_Store
+Thumbs.db
