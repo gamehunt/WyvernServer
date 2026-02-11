@@ -16,6 +16,8 @@ import (
 	"wyvern/server/internal/service"
 	mongoimpl "wyvern/server/internal/storage/mongo"
 	transporthttp "wyvern/server/internal/transport/http"
+
+	"github.com/valkey-io/valkey-go"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
@@ -24,6 +26,7 @@ type App struct {
 	httpServer *nethttp.Server
 	// wsManager  *ws.ConnectionManager
 	mongoClient *mongo.Client
+	redisClient valkey.Client
 }
 
 func New(cfg config.Config) (*App, error) {

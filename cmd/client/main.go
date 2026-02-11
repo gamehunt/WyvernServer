@@ -1,4 +1,4 @@
-package client
+package main
 
 import (
 	"flag"
@@ -11,6 +11,22 @@ import (
 )
 
 var serverUrl string
+
+func execRegisterCommand(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("usage: register <user> <password>")
+	}
+
+	return register(args[0], args[1])
+}
+
+func execLoginCommand(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("usage: login <user> <password>")
+	}
+
+	return login(args[0], args[1])
+}
 
 func execExitCommand(_ []string) error {
 	fmt.Println("Bye")
@@ -40,6 +56,14 @@ var commands = map[string]Command {
 	"health": {
 		Description: "Check Health",
 		Exec: execHealthCommand,
+	},
+	"register": {
+		Description: "Registers a new user",
+		Exec: execRegisterCommand,
+	},
+	"login": {
+		Description: "Login as a user",
+		Exec: execLoginCommand,
 	},
 	"exit": {
 		Description: "Exit",
@@ -73,7 +97,7 @@ func executor(cmd string) {
 	err := rec.Exec(args)
 
 	if err != nil {
-		fmt.Println("An error occured during command execution: %v", err)
+		fmt.Println("An error occured during command execution:", err)
 	}
 }
 

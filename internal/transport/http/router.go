@@ -14,6 +14,7 @@ func addRoutes(mux *http.ServeMux, logger *slog.Logger, authSvc *service.AuthSer
 	})
 
 	mux.HandleFunc("POST /login", handler.LoginHandler(logger, authSvc))
+	mux.HandleFunc("POST /register", handler.RegisterHandler(logger, authSvc))
 }
 
 func NewRouter(
