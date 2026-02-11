@@ -2,36 +2,35 @@ package storage
 
 import (
 	"encoding/json"
+	"errors"
+	"log"
 	"log/slog"
 	"os"
 	"wyvern/server/internal/domain"
-	"log"
+
 	"github.com/bytemare/opaque"
 )
 
-func GetSecrets(conf *opaque.Configuration) domain.Secret {
+func GetSecrets(filePath string, conf *opaque.Configuration) domain.Secret {
 	logger := slog.Default()
-	filePath := "secret.json"
 
-	var secret domain.Secret // TODO move to config
+	var secret domain.Secret 
 
-	jsonData, err := os.ReadFile(filePath)
-    if err == nil {
+	_, err := os.Stat(filePath)
+
+	if err == nil {
+		jsonData, err := os.ReadFile(filePath)
     	err = json.Unmarshal(jsonData, &secret)
     	if err != nil {
     	    log.Fatalf("failed to unmarshal json data: %v", err)
     	}
-	} else {
-    	log.Fatalf("failed to read json file: %v", err)
-	}
-	
-	if len(secret.SecretOprfSeed) == 0 {
+	} else if errors.Is(err, os.ErrNotExist) {
 		logger.Info("Creating default secrets...")
 
 		secret.SecretOprfSeed = conf.GenerateOPRFSeed()
 		secret.ServerPrivateKey, secret.ServerPublicKey = conf.KeyGen()
 
-		jsonData, err := json.Marshal(secret)
+		jsonData, err := json.MarshalIndent(secret, "", "\t")
 		if err != nil {
 			log.Fatalf("failed to marshal json data: %v", err)
 		}
@@ -40,7 +39,9 @@ func GetSecrets(conf *opaque.Configuration) domain.Secret {
     	if err != nil {
     	    log.Fatalf("Error writing to file: %v", err)
     	}
+	} else {
+    	log.Fatalf("failed to read json file: %v", err)
 	}
-
+	
 	return secret
 }

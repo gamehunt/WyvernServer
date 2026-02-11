@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
-	"net/http"
+	nethttp "net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -14,35 +14,35 @@ import (
 	"wyvern/server/internal/config"
 	"wyvern/server/internal/pkg/logger"
 	"wyvern/server/internal/service"
-	"wyvern/server/internal/storage/mongo"
-	my_http "wyvern/server/internal/transport/http"
+	mongoimpl "wyvern/server/internal/storage/mongo"
+	transporthttp "wyvern/server/internal/transport/http"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 
 type App struct {
-	httpServer *http.Server
+	httpServer *nethttp.Server
 	// wsManager  *ws.ConnectionManager
+	mongoClient *mongo.Client
 }
 
-func New(cfg *config.Config) (*App, error) {
+func New(cfg config.Config) (*App, error) {
 	log := logger.New(cfg.Logger)
 	logger.SetAsDefault(log)
 
-	mongoClient, err := mongo.New(cfg.Mongo.Uri)
+	mongoClient, err := mongoimpl.New(cfg.Mongo.Uri)
 	if err != nil {
-		log.Error("Ошибка подключения к MongoDB", "error", err)
+		log.Error("Failed to connect to MongoDB", "error", err)
 		return nil, err
 	}
 
-	database := mongoClient.Database(cfg.Mongo.Database)
+	userRepo := mongoimpl.NewUserRepository(mongoClient, cfg.Mongo.Database)
 
-	userRepo := mongo.NewUserRepository(database)
+	authSvc := service.NewAuthService(userRepo, cfg.Auth)
 
-	service.NewAuthService(userRepo)
+	handler := transporthttp.NewRouter(log, authSvc)
 
-	handler := my_http.NewRouter(log)
-
-	httpServer := &http.Server{
+	httpServer := &nethttp.Server{
 		Addr:         net.JoinHostPort(cfg.Server.Host, strconv.Itoa(cfg.Server.Port)),
 		Handler:      handler,
 		ReadTimeout:  time.Duration(cfg.Server.Timeout) * time.Second,
@@ -51,6 +51,7 @@ func New(cfg *config.Config) (*App, error) {
 
 	return &App{
 		httpServer: httpServer,
+		mongoClient: mongoClient,
 	}, nil
 }
 
@@ -59,7 +60,7 @@ func (a *App) Run() error {
 
 	go func() {
 		log.Info("Listening at", "addr", a.httpServer.Addr)
-		if err := a.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := a.httpServer.ListenAndServe(); err != nil && err != nethttp.ErrServerClosed {
 			log.Error("Failed to start server", "error", err)
 		}
 	}()
@@ -81,6 +82,11 @@ func (a *App) Shutdown() error {
 	if err := a.httpServer.Shutdown(ctx); err != nil {
 		log.Error("Graceful shutdown error", "error", err)
 		return fmt.Errorf("Failed to shutdown server: %w", err)
+	}
+
+	if err := mongoimpl.CloseGracefully(a.mongoClient); err != nil {
+		log.Error("Failed to shutdown MongoDB", "error", err)
+		return fmt.Errorf("Failed to shutdown MongoDB: %w", err)
 	}
 
 	log.Info("Bye.")

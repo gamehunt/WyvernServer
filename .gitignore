@@ -1,6 +1,5 @@
 storage/*
 storage/*/*
-!storage/*/.gitkeep
 
 # Binaries for programs and plugins
 *.exe

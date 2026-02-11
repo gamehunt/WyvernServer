@@ -7,7 +7,8 @@ services:
       MINIO_SERVER_ACCESS_KEY: minio-access-key
       MINIO_SERVER_SECRET_KEY: minio-secret-key
     volumes:
-      - ./storage/secret.json:/root/secret.json
+      - ./config.json:/root/config.json
+      - ./storage:/storage
   valkey:
     image: "valkey/valkey:9"
     restart: always
@@ -22,13 +23,16 @@ services:
       MONGO_INITDB_DATABASE: wyvern
     expose:
       - 27017
+    volumes:
+      - ./init/mongo:/docker-entrypoint-initdb.d
+      - ./storage/mongo:/data/db
   mongo-express:
     image: mongo-express
     restart: always
     ports:
       - 8081:8081
     environment:
-      ME_CONFIG_MONGODB_URL: mongodb://root:12345@mongo:27017/
+      ME_CONFIG_MONGODB_URL: mongodb://wyvern:wyvern@mongo:27017/
       ME_CONFIG_BASICAUTH_ENABLED: true
       ME_CONFIG_BASICAUTH_USERNAME: mongoexpressuser
       ME_CONFIG_BASICAUTH_PASSWORD: mongoexpresspass

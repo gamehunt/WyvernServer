@@ -1,33 +1,41 @@
 package config
 
 import (
+	"encoding/json"
+	"log"
 	"os"
 	"strconv"
 	"wyvern/server/internal/pkg/logger"
 )
 
 type Config struct {
-	Server ServerConfig
-	Mongo  MongoConfig
-	Redis  RedisConfig
-	Logger logger.LoggerConfig
+	Server ServerConfig        `json:"server"`
+	Auth   AuthConfig          `json:"auth"`
+	Mongo  MongoConfig         `json:"mongo"`
+	Redis  RedisConfig         `json:"redis"`
+	Logger logger.LoggerConfig `json:"logger"`
 }
 
 type ServerConfig struct {
-	Host string
-	Port int
-	Timeout int
+	Host    string `json:"host"`
+	Port    int    `json:"port"`
+	Timeout int    `json:"timeout"`
+}
+
+type AuthConfig struct {
+	ServerIdentity string `json:"server_identity"`
+	SecretPath     string `json:"secret_path"`
 }
 
 type RedisConfig struct {
-	Host     string
-	Port     int
-	DB       int
+	Host string `json:"host"`
+	Port int    `json:"port"`
+	DB   int    `json:"db"`
 }
 
 type MongoConfig struct {
-	Uri      string
-	Database string
+	Uri      string `json:"uri"`
+	Database string `json:"database"`
 }
 
 func getEnv(key, fallback string) string {
@@ -46,25 +54,19 @@ func getEnvInt(key string, fallback int) int {
 	return fallback
 }
 
-func Load() (*Config) {
-	cfg := &Config{
-		Server: ServerConfig{
-			Host: getEnv("SERVER_HOST", ""),
-			Port: getEnvInt("SERVER_PORT", 5000),
-			Timeout: getEnvInt("SERVER_TIMEOUT", 5000),
-		},
-		Mongo: MongoConfig{
-			Uri:      getEnv("MONGO_URI", "mongodb://wyvern:wyvern@mongo:27017"),
-			Database: getEnv("MONGO_DATABASE", "wyvern"),
-		},
-		Redis: RedisConfig{
-			Host:     getEnv("REDIS_HOST", "valkey"),
-			Port:     getEnvInt("REDIS_PORT", 6379),
-			DB:       getEnvInt("REDIS_DB", 0),
-		},
-		Logger: logger.LoggerConfig{
-			Level:    logger.LevelFromString(getEnv("LOG_LEVEL", "info")),
-		},
+func Load(path string) (Config) {
+	var cfg Config
+	
+	jsonData, err := os.ReadFile(path)
+
+	if err != nil {
+		log.Fatalf("failed to read config: %v", err)
+	}
+
+	err = json.Unmarshal(jsonData, &cfg)
+
+	if err != nil {
+		log.Fatalf("failed to parse config: %v", err)
 	}
 
 	return cfg

@@ -6,4 +6,5 @@ import (
 
 type UserRepository interface {
 	Create(user *domain.User) error
+	FindByIdentity(identity []byte) (*domain.User, error)
 }
