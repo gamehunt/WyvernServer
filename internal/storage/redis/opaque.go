@@ -12,7 +12,7 @@ type OpaqueSessionStorage struct {
 	client valkey.Client
 }
 
-func NewOpaqueSessionStorage(client valkey.Client, name string) *OpaqueSessionStorage {
+func NewOpaqueSessionStorage(client valkey.Client) *OpaqueSessionStorage {
     return &OpaqueSessionStorage{
 		client: client,
     }
@@ -23,8 +23,32 @@ func (r *OpaqueSessionStorage) Save(state []byte) (string, error) {
 
 	ctx := context.Background()
 
-  	// SET key val NX
-	err := r.client.Do(ctx, r.client.B().Set().Key("opaque:"+sessionId).Value("val").Nx().Build()).Error()
+	err := r.client.Do(ctx, 
+	r.client.B().Set().Key("opaque:"+sessionId).Value(base64.RawURLEncoding.EncodeToString(state)).Nx().Build()).Error()
 
-	return "", nil
+	if err != nil {
+		return "", err
+	}
+
+	return sessionId, nil
+}
+
+func (r *OpaqueSessionStorage) Restore(sessionId string) ([]byte, error) {
+	result := r.client.Do(context.Background(), r.client.B().Get().Key("opaque:"+sessionId).Build())
+
+	if (result.Error() != nil) {
+		return nil, result.Error()
+	}
+
+	encState, err := result.AsBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	state, err := base64.RawURLEncoding.DecodeString(string(encState))
+	if err != nil {
+		return nil, err
+	}
+
+	return state, nil
 }

@@ -125,6 +125,7 @@ func login(identity string, password string) error {
 		return fmt.Errorf("Failed to serialize request: %v", err)
 	}
 
+
 	httpclient := &http.Client{}
 	resp, err := httpclient.Post(loginEndpoint, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -162,6 +163,7 @@ func login(identity string, password string) error {
 	msg3 := ke3.Serialize()
 
 	reqData = handler.LoginRequest {
+		SessionId: responseData.SessionId,
 		Payload: msg3,
 	}
 

@@ -15,6 +15,7 @@ import (
 	"wyvern/server/internal/pkg/logger"
 	"wyvern/server/internal/service"
 	mongoimpl "wyvern/server/internal/storage/mongo"
+	"wyvern/server/internal/storage/redis"
 	transporthttp "wyvern/server/internal/transport/http"
 
 	"github.com/valkey-io/valkey-go"
@@ -33,15 +34,23 @@ func New(cfg config.Config) (*App, error) {
 	log := logger.New(cfg.Logger)
 	logger.SetAsDefault(log)
 
-	mongoClient, err := mongoimpl.New(cfg.Mongo.Uri)
+	mongoClient, err := mongoimpl.New(cfg.Mongo)
 	if err != nil {
 		log.Error("Failed to connect to MongoDB", "error", err)
 		return nil, err
 	}
 
+	redisClient, err := redis.New(cfg.Redis)
+	if err != nil {
+		log.Error("Failed to connect to Redis", "error", err)
+		return nil, err
+	}
+
 	userRepo := mongoimpl.NewUserRepository(mongoClient, cfg.Mongo.Database)
 
-	authSvc := service.NewAuthService(userRepo, cfg.Auth)
+	opaqueSessionStorate := redis.NewOpaqueSessionStorage(redisClient)
+
+	authSvc := service.NewAuthService(userRepo, opaqueSessionStorate, cfg.Auth)
 
 	handler := transporthttp.NewRouter(log, authSvc)
 
@@ -55,6 +64,7 @@ func New(cfg config.Config) (*App, error) {
 	return &App{
 		httpServer: httpServer,
 		mongoClient: mongoClient,
+		redisClient: redisClient,
 	}, nil
 }
 
@@ -91,6 +101,8 @@ func (a *App) Shutdown() error {
 		log.Error("Failed to shutdown MongoDB", "error", err)
 		return fmt.Errorf("Failed to shutdown MongoDB: %w", err)
 	}
+
+	a.redisClient.Close()
 
 	log.Info("Bye.")
 	return nil

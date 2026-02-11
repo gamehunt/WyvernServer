@@ -28,9 +28,8 @@ type AuthConfig struct {
 }
 
 type RedisConfig struct {
-	Host string `json:"host"`
-	Port int    `json:"port"`
-	DB   int    `json:"db"`
+	Uri string `json:"uri"`
+	DB  int    `json:"db"`
 }
 
 type MongoConfig struct {

@@ -4,16 +4,17 @@ import (
 	"context"
 	"fmt"
 	"time"
+	"wyvern/server/internal/config"
 
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-func New(uri string) (*mongo.Client, error) {
+func New(cfg config.MongoConfig) (*mongo.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
 	defer cancel()
 
-	clientOptions := options.Client().ApplyURI(uri)
+	clientOptions := options.Client().ApplyURI(cfg.Uri)
 
 	client, err := mongo.Connect(clientOptions)
 	if err != nil {

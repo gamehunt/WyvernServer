@@ -13,9 +13,8 @@
     "database": "wyvern"
   },
   "redis": {
-    "host": "valkey",
-    "port": 6379,
-    "db": 0
+	"uri": "valkey:6379",
+	"db": 0
   },
   "logger": {
     "level": "debug"

@@ -8,12 +8,14 @@ import (
 )
 
 type LoginRequest struct {
-	Identity *string `json:"identity,omitempty"`
+	Identity  *string `json:"identity,omitempty"`
+	SessionId *string `json:"session_id,omitempty"`
 	Payload   []byte `json:"payload"`
 }
 
 type LoginResponse struct {
 	Identity  []byte `json:"identity,omitempty"`
+	SessionId *string `json:"session_id,omitempty"`
 	Payload   []byte
 }
 
@@ -45,14 +47,15 @@ func LoginHandler(_ *slog.Logger, authService *service.AuthService) http.Handler
 		}
 
 		if req.Identity != nil {
-			ke2, identity, err := authService.StartLogin(*req.Identity, req.Payload)
+			ke2, identity, sessionId, err := authService.StartLogin(*req.Identity, req.Payload)
 
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 			} else {
 				resp := LoginResponse{
-					Identity: identity,
-					Payload:  ke2,
+					Identity:   identity,
+					SessionId: &sessionId,
+					Payload:    ke2,
 				}
 
 				err = json.NewEncoder(w).Encode(resp)
@@ -61,8 +64,8 @@ func LoginHandler(_ *slog.Logger, authService *service.AuthService) http.Handler
 					return
 				}
 			}
-		} else {
-			_, err := authService.FinishLogin(req.Payload)
+		} else if req.SessionId != nil {
+			_, err := authService.FinishLogin(*req.SessionId, req.Payload)
 
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -80,8 +83,9 @@ func LoginHandler(_ *slog.Logger, authService *service.AuthService) http.Handler
 
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte("{}"))
+		} else {
+			http.Error(w, "Invalid reques", http.StatusBadRequest)
 		}
-
 	}
 }
 
