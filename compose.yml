@@ -10,7 +10,7 @@ services:
       - ./config.json:/root/config.json
       - ./storage:/storage
   valkey:
-    image: "valkey/valkey:9"
+    image: "valkey/valkey-extension:8.1"
     restart: always
     expose:
       - 6379

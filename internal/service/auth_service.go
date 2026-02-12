@@ -7,15 +7,14 @@ import (
 	"wyvern/server/internal/pkg/errors"
 	"wyvern/server/internal/repository"
 	"wyvern/server/internal/storage"
-	"wyvern/server/internal/storage/redis"
+	"wyvern/server/internal/types"
 
 	"github.com/bytemare/opaque"
-	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 type AuthService struct {
     usersRepo repository.UserRepository
-	opaqueSessionStorage *redis.OpaqueSessionStorage
+	opaqueSessionCache repository.OpaqueSessionCache
 
 	identity  []byte
 	secrets   domain.Secret
@@ -24,7 +23,7 @@ type AuthService struct {
 
 func NewAuthService(
     usersRepo repository.UserRepository,
-	opaqueSessionStorage *redis.OpaqueSessionStorage,	
+	opaqueSessionCache repository.OpaqueSessionCache,	
 	authCfg config.AuthConfig,
 ) *AuthService {
 	conf := opaque.DefaultConfiguration()
@@ -34,124 +33,132 @@ func NewAuthService(
 		conf: opaque.DefaultConfiguration(),
 		secrets: secrets,
 		identity: []byte(authCfg.ServerIdentity),
-		opaqueSessionStorage: opaqueSessionStorage,
+		opaqueSessionCache: opaqueSessionCache,
     }
 }
 
-func (s *AuthService) StartLogin(identity string, msg1 []byte) ([]byte, []byte, string, error) {
+func (s *AuthService) StartLogin(identity string, msg1 []byte) ([]byte, []byte, *types.ID, error) {
 	server, err := s.conf.Server()
 	if err != nil {
-		return nil, nil, "", err
+		return nil, nil, nil, err
 	}
 
 	err = server.SetKeyMaterial(s.identity, s.secrets.ServerPrivateKey, s.secrets.ServerPublicKey, s.secrets.SecretOprfSeed)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, nil, nil, err
 	}
 
 	ke1, err := server.Deserialize.KE1(msg1)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, nil, nil, err
 	}
 
 	clientRecord, err := s.usersRepo.FindByIdentity(identity)
 	if clientRecord == nil {
-		return nil, nil, "", errors.AuthInvalidIdentity
+		return nil, nil, nil, errors.AuthInvalidIdentity
 	}
 
 	record, err := server.Deserialize.RegistrationRecord(*clientRecord.OpaqueRecord)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, nil, nil, err
 	}
 
 	opaqueClientRecord := &opaque.ClientRecord{
-		CredentialIdentifier: []byte(clientRecord.ID.Hex()),
+		CredentialIdentifier: []byte(clientRecord.Id.String()),
 		ClientIdentity:       []byte(clientRecord.Identity),
 		RegistrationRecord:   record,
 	}
 
 	ke2, err := server.LoginInit(ke1, opaqueClientRecord)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, nil, nil, err
 	}
 
-	sessionId, err := s.opaqueSessionStorage.Save(server.SerializeState())	
+	opaqueSession := &domain.OpaqueLoginSession{
+		UserId: clientRecord.Id,
+		Data: server.SerializeState(),
+	}
+
+	sessionId, err := s.opaqueSessionCache.Save(opaqueSession)	
 	if err != nil {
-		return nil, nil, "", err
+		return nil, nil, nil, err
 	}
 
 	return ke2.Serialize(), s.identity, sessionId, nil
 }
 
-func (s *AuthService) FinishLogin(sessionId string, msg3 []byte) ([]byte, error) {
+func (s *AuthService) FinishLogin(opaqueSessionId types.ID, msg3 []byte) ([]byte, *types.ID, error) {
 	server, err := s.conf.Server()
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = server.SetKeyMaterial(s.identity, s.secrets.ServerPrivateKey, s.secrets.ServerPublicKey, s.secrets.SecretOprfSeed)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	data, err := s.opaqueSessionStorage.Restore(sessionId)
+	opaqueSession, err := s.opaqueSessionCache.Restore(opaqueSessionId)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	server.SetAKEState(data)
+	server.SetAKEState(opaqueSession.Data)
 
 	ke3, err := server.Deserialize.KE3(msg3)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := server.LoginFinish(ke3); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return server.SessionKey(), nil
+	return server.SessionKey(), &opaqueSession.UserId, nil
 }
 
-func (s *AuthService) StartRegister(msg1 []byte) ([]byte, []byte, string, error) {
+func (s *AuthService) StartRegister(msg1 []byte) ([]byte, []byte, *types.ID, error) {
 	server, err := s.conf.Server()
 	if err != nil {
-		return nil, nil, "", err
+		return nil, nil, nil, err
 	}
 
 	err = server.SetKeyMaterial(s.identity, s.secrets.ServerPrivateKey, s.secrets.ServerPublicKey, s.secrets.SecretOprfSeed)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, nil, nil, err
 	}
 
 	request, err := server.Deserialize.RegistrationRequest(msg1)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, nil, nil, err
+	}
+
+	credID, err := types.NewID()
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
 	user := domain.User{
-		ID: bson.NewObjectID(),
+		Id: credID,
 	}
-
-	credID := user.ID.Hex()
 
 	err = s.usersRepo.Create(&user)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, nil, nil, err
 	}
 
 	pks, err := server.Deserialize.DecodeAkePublicKey(s.secrets.ServerPublicKey)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, nil, nil, err
 	}
 
-	response := server.RegistrationResponse(request, pks, []byte(credID), s.secrets.SecretOprfSeed)
+	response := server.RegistrationResponse(request, pks, []byte(credID.String()), s.secrets.SecretOprfSeed)
 
-	return response.Serialize(), s.identity, credID, nil
+	return response.Serialize(), s.identity, &credID, nil
 }
 
-func (s *AuthService) FinishRegister(credID string, identity string, msg3 []byte) error {
+func (s *AuthService) FinishRegister(credID types.ID, identity string, msg3 []byte) error {
 	server, err := s.conf.Server()
 	if err != nil {
 		return err
@@ -167,12 +174,7 @@ func (s *AuthService) FinishRegister(credID string, identity string, msg3 []byte
 		return err
 	}
 
-	idObj, err := bson.ObjectIDFromHex(credID)
-	if err != nil {
-		return err
-	}
-
-	user, err := s.usersRepo.FindByID(idObj)
+	user, err := s.usersRepo.FindByID(credID)
 	if err != nil {
 		return err
 	}

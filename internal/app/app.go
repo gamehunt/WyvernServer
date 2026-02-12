@@ -47,12 +47,15 @@ func New(cfg config.Config) (*App, error) {
 	}
 
 	userRepo := mongoimpl.NewUserRepository(mongoClient, cfg.Mongo.Database)
+	sessionRepo := mongoimpl.NewSessionRepository(mongoClient, cfg.Mongo.Database)
 
-	opaqueSessionStorate := redis.NewOpaqueSessionStorage(redisClient)
+	opaqueSessionCache := redis.NewOpaqueSessionCache(redisClient)
+	sessionCache := redis.NewSessionCache(redisClient)
 
-	authSvc := service.NewAuthService(userRepo, opaqueSessionStorate, cfg.Auth)
+	authSvc := service.NewAuthService(userRepo, opaqueSessionCache, cfg.Auth)
+	sessionSvc := service.NewSessionService(sessionCache, sessionRepo)
 
-	handler := transporthttp.NewRouter(log, authSvc)
+	handler := transporthttp.NewRouter(log, authSvc, sessionSvc)
 
 	httpServer := &nethttp.Server{
 		Addr:         net.JoinHostPort(cfg.Server.Host, strconv.Itoa(cfg.Server.Port)),

@@ -57,9 +57,9 @@ func register(identity string, password string) error {
 
 	clientIdent := identity
 	serverIdent := responseData.Identity
-	credId      := responseData.CredId
+	id          := responseData.UserId
 
-	fmt.Printf("Received serverIdent=%s and credId=%s\n", serverIdent, credId)
+	fmt.Printf("Received serverIdent=%s and userId=%s\n", serverIdent, id)
 
 	response, err := client.Deserialize.RegistrationResponse(responseData.Payload)
 	if err != nil {
@@ -73,8 +73,8 @@ func register(identity string, password string) error {
 	msg3 := record.Serialize()
 
 	reqData = handler.RegisterRequest {
+		UserId:   &id,
 		Identity: &clientIdent,
-		CredId:   &credId,
 		Payload:   msg3,
 	}
 
@@ -163,7 +163,7 @@ func login(identity string, password string) error {
 	msg3 := ke3.Serialize()
 
 	reqData = handler.LoginRequest {
-		SessionId: responseData.SessionId,
+		OpaqueId: responseData.OpaqueId,
 		Payload: msg3,
 	}
 
@@ -183,9 +183,15 @@ func login(identity string, password string) error {
 		return err
 	}
 
-	clientSessionKey := client.SessionKey()
+	// clientSessionKey := client.SessionKey() -- secret shared key
 
-	fmt.Printf("Logged in with sessionId=%x\n", clientSessionKey)
+	var finalResp handler.SuccessLoginResponse
+	err = json.NewDecoder(resp.Body).Decode(&finalResp)
+	if err != nil {
+		return fmt.Errorf("Failed to parse response: %v", err)
+	}
+
+	fmt.Printf("Logged in with sessionId=%s\n", finalResp.SessionId)
 
 	return nil
 }

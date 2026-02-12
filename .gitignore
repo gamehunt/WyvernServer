@@ -1,5 +1,4 @@
-storage/*
-storage/*/*
+storage
 
 # Binaries for programs and plugins
 *.exe

@@ -5,6 +5,7 @@ import (
 	"time"
 	"wyvern/server/internal/domain"
 	"wyvern/server/internal/repository"
+	"wyvern/server/internal/types"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -32,19 +33,19 @@ func (r *UsersRepositoryImpl) Update(user *domain.User) error {
     ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
     defer cancel()
 
-	filter := bson.D{{Key: "_id", Value: user.ID}}
+	filter := bson.D{{Key: "id", Value: user.Id}}
 
 	_, err := r.collection.ReplaceOne(ctx, filter, user)
 
     return err
 }
 
-func (r *UsersRepositoryImpl) FindByID(id bson.ObjectID) (*domain.User, error) {
+func (r *UsersRepositoryImpl) FindByID(id types.ID) (*domain.User, error) {
     ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
     defer cancel()
 
 	var user domain.User
-    err := r.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
+	err := r.collection.FindOne(ctx, bson.M{"id": id}).Decode(&user)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
