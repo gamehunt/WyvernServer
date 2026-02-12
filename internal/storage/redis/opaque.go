@@ -34,13 +34,23 @@ func (r *OpaqueSessionCacheImpl) Save(session *domain.OpaqueLoginSession) (*type
 
 	ctx := context.Background()
 
-	err = r.client.Do(ctx, 
-	r.client.B().
+	key := "opaque:"+sessionId.String()
+
+	setCmd := r.client.B().
 	JsonSet().
-		Key("opaque:"+sessionId.String()).
+		Key(key).
 		Path("$").
-		Value(string(jsonData)).
-	Nx().Build()).Error()
+		Value(string(jsonData)).Build()
+
+	err = r.client.Do(ctx, setCmd).Error()
+
+	if err != nil {
+		return nil, err
+	}
+
+	expireCmd := r.client.B().Expire().Key(key).Seconds(3 * 60).Build()
+
+	err = r.client.Do(ctx, expireCmd).Error()
 
 	if err != nil {
 		return nil, err

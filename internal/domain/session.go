@@ -1,8 +1,26 @@
 package domain
 
-import "wyvern/server/internal/types"
+import (
+	"time"
+	"wyvern/server/internal/types"
+)
 
 type Session struct {
-	Id     types.ID `bson:"id"`
-	UserId types.ID `bson:"user_id"`
+	Id           types.ID           `bson:"id"`
+	UserId       types.ID           `bson:"user_id"`
+	RefreshToken types.RefreshToken `bson:"refresh"`
+	LastActive   time.Time          `bson:"last_active"` 
+	ExpiresAt    time.Time          `bson:"expires_at"`
+}
+
+type SessionCache struct {
+	Id     types.ID
+	UserId types.ID
+}
+
+func (s *Session) CacheData() *SessionCache {
+	return &SessionCache{
+		Id: s.Id,
+		UserId: s.UserId,
+	}
 }

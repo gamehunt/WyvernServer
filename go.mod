@@ -5,6 +5,7 @@ go 1.25.6
 require (
 	github.com/bytemare/opaque v0.10.0
 	github.com/c-bata/go-prompt v0.2.6
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/valkey-io/valkey-go v1.0.71
 	go.mongodb.org/mongo-driver/v2 v2.5.0

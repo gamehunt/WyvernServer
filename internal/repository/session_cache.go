@@ -7,6 +7,6 @@ import (
 
 type SessionCache interface {
 	Save(session *domain.Session)  error
-	Get(sessionId types.ID)        (*domain.Session, error)
+	Get(sessionId types.ID)        (*domain.SessionCache, error)
 	Invalidate(sessionId types.ID) error
 }
