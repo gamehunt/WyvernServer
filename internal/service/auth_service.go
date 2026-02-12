@@ -139,15 +139,6 @@ func (s *AuthService) StartRegister(msg1 []byte) ([]byte, []byte, *types.ID, err
 		return nil, nil, nil, err
 	}
 
-	user := domain.User{
-		Id: credID,
-	}
-
-	err = s.usersRepo.Create(&user)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
 	pks, err := server.Deserialize.DecodeAkePublicKey(s.secrets.ServerPublicKey)
 	if err != nil {
 		return nil, nil, nil, err
@@ -174,15 +165,6 @@ func (s *AuthService) FinishRegister(credID types.ID, identity string, msg3 []by
 		return err
 	}
 
-	user, err := s.usersRepo.FindByID(credID)
-	if err != nil {
-		return err
-	}
-
-	if user == nil {
-		return errors.AuthInvalidCredId
-	}
-
 	existingUser, err := s.usersRepo.FindByIdentity(identity)
 	if err != nil {
 		return err
@@ -193,11 +175,14 @@ func (s *AuthService) FinishRegister(credID types.ID, identity string, msg3 []by
 	}
 
 	opaqueRecordBytes := record.Serialize()
+	
+	user := &domain.User{
+		Id: credID,
+		Identity: identity,
+		OpaqueRecord: &opaqueRecordBytes,
+		JoinedAt: time.Now(),
+		LastOnlineAt: time.Now(),
+	}
 
-	user.Identity     = identity
-	user.OpaqueRecord = &opaqueRecordBytes
-	user.JoinedAt     = time.Now()
-	user.LastOnlineAt = user.JoinedAt
-
-	return s.usersRepo.Update(user)
+	return s.usersRepo.Create(user)
 }
