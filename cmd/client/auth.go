@@ -2,17 +2,19 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"wyvern/server/internal/transport/http/handler"
+	"wyvern/server/internal/types"
 
 	"github.com/bytemare/opaque"
 )
 
 func register(identity string, password string) error {
-	registerEndpoint, err := url.JoinPath(serverUrl, "register")
+	registerEndpoint, err := url.JoinPath(serverUrl, "auth/register")
 	if err != nil {
 		return fmt.Errorf("Error creating endpoints: %v", err)
 	}
@@ -99,8 +101,13 @@ func register(identity string, password string) error {
 	return nil
 }
 
+var currentSessionKey   []byte
+var currentAccessToken  string
+var currentRefreshToken string
+var currentSessionId    types.ID
+
 func login(identity string, password string) error {
-	loginEndpoint, err := url.JoinPath(serverUrl, "login")
+	loginEndpoint, err := url.JoinPath(serverUrl, "auth/login")
 	if err != nil {
 		return fmt.Errorf("Error creating endpoints: %v", err)
 	}
@@ -183,15 +190,77 @@ func login(identity string, password string) error {
 		return err
 	}
 
-	// clientSessionKey := client.SessionKey() -- secret shared key
-
 	var finalResp handler.SuccessLoginResponse
 	err = json.NewDecoder(resp.Body).Decode(&finalResp)
 	if err != nil {
 		return fmt.Errorf("Failed to parse response: %v", err)
 	}
 
-	fmt.Printf("Logged in with sessionId=%s\n", finalResp.SessionId)
+	currentSessionKey   = client.SessionKey()
+	currentSessionId    = finalResp.SessionId
+	currentAccessToken  = finalResp.AccessToken
+	currentRefreshToken = finalResp.RefreshToken
+
+	fmt.Printf("Logged in with sessionId=%s, accessToken=%s, refreshToken=%s\n", finalResp.SessionId,
+	finalResp.AccessToken, finalResp.RefreshToken)
+
+	return nil
+}
+
+func refresh() error {
+	if currentSessionKey == nil {
+		return fmt.Errorf("Not logged in")
+	}
+
+	refreshEndpoint, err := url.JoinPath(serverUrl, "auth/refresh")
+	if err != nil {
+		return fmt.Errorf("Error creating endpoints: %v", err)
+	}
+
+	h := sha256.New()
+    h.Write(currentSessionKey)
+    h.Write([]byte("auth"))
+	authKey := h.Sum(nil)
+
+	nonce := opaque.RandomBytes(16)
+
+	h.Reset()
+    h.Write(authKey)
+    h.Write(nonce)
+	proof := h.Sum(nil)
+
+	req := &handler.RefreshRequest{
+		SessionId: currentSessionId,
+		RefreshToken: currentRefreshToken,
+		Proof: proof,	
+		Nonce: nonce,
+	}
+
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		return fmt.Errorf("Failed to serialize request: %v", err)
+	}
+
+	resp, err := http.Post(refreshEndpoint, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+	    return fmt.Errorf("Error sending request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	err = checkResponseStatus(resp)
+	if err != nil {
+		return err
+	}
+
+	var finalResp handler.RefreshResponse
+	err = json.NewDecoder(resp.Body).Decode(&finalResp)
+	if err != nil {
+		return fmt.Errorf("Failed to parse response: %v", err)
+	}
+
+	currentAccessToken = finalResp.AccessToken
+
+	fmt.Printf("accessToken=%s\n", currentAccessToken)
 
 	return nil
 }

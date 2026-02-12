@@ -12,15 +12,3 @@ type Session struct {
 	LastActive   time.Time          `bson:"last_active"` 
 	ExpiresAt    time.Time          `bson:"expires_at"`
 }
-
-type SessionCache struct {
-	Id     types.ID
-	UserId types.ID
-}
-
-func (s *Session) CacheData() *SessionCache {
-	return &SessionCache{
-		Id: s.Id,
-		UserId: s.UserId,
-	}
-}

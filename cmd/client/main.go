@@ -28,6 +28,10 @@ func execLoginCommand(args []string) error {
 	return login(args[0], args[1])
 }
 
+func execRefreshCommand(args []string) error {
+	return refresh()
+}
+
 func execExitCommand(_ []string) error {
 	fmt.Println("Bye")
 	os.Exit(0)
@@ -64,6 +68,10 @@ var commands = map[string]Command {
 	"login": {
 		Description: "Login as a user",
 		Exec: execLoginCommand,
+	},
+	"refresh": {
+		Description: "Refresh access token",
+		Exec: execRefreshCommand,
 	},
 	"exit": {
 		Description: "Exit",
