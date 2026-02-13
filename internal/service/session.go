@@ -103,7 +103,8 @@ func (r *SessionService) RefreshSession(sessionId types.ID, refreshToken string,
 
 	ttl = 30 * 24 * time.Hour
 
-	session.ExpiresAt = time.Now().Add(ttl)
+	session.ExpiresAt  = time.Now().Add(ttl)
+	session.LastActive = time.Now()
 	err = r.persistent.Update(session)
 
 	if err != nil {

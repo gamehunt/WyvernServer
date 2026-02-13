@@ -30,11 +30,52 @@ func addRoutes(router     *gin.Engine,
     protected := router.Group("/api")
     protected.Use(middleware.AuthMiddleware(tokenSvc))
 	{
-		protected.GET("/test", func(c *gin.Context) {
-			uid, _ := c.Get("userId")
-			sid, _ := c.Get("sessionId")
-			c.JSON(200, gin.H{"UserId": uid, "SessionId": sid})
-		})
+		guilds := protected.Group("guilds/:guildId")	
+		{
+			guilds.GET("/", func(c *gin.Context) {
+				c.String(200, c.Param("guildId"))
+			})
+		}
+
+
+		members := guilds.Group("members")
+		{
+			members.GET("/", func(c *gin.Context) {
+				c.String(200, "members " + c.Param("guildId"))
+			})
+
+			members.GET("/:userId", func(c *gin.Context) {
+				c.String(200, "member: " + c.Param("userId"))
+			})
+		}
+
+
+		channels := guilds.Group("channels")
+		{
+			channels.GET("/", func(c *gin.Context) {
+				c.String(200, "channels " + c.Param("guildId"))
+			})
+		}
+
+
+		channel := channels.Group(":channelId")
+		{
+			channel.GET("/", func(c *gin.Context) {
+				c.String(200, "channel: " + c.Param("channelId"))
+			})
+
+		}
+
+		messages := channel.Group("messages")
+		{
+			messages.GET("/", func(c *gin.Context) {
+				c.String(200, "messages: " + c.Param("channelId"))
+			})
+
+			messages.GET("/:messageId", func(c *gin.Context) {
+				c.String(200, "message: " + c.Param("messageId"))
+			})
+		}
 	}
 }
 

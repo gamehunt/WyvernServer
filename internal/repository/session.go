@@ -8,6 +8,7 @@ import (
 type SessionRepository interface {
 	Create(session *domain.Session) error
 	Update(session *domain.Session) error
+	Delete(id types.ID) error
 
 	FindByID(id types.ID) (*domain.Session, error)
 }
