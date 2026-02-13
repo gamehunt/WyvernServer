@@ -66,6 +66,15 @@ func NewAuthHandler(logger *slog.Logger,
 	}
 }
 
+// Login         godoc
+// @Summary      Logs in
+// @Description  Logs in
+// @Accept       json
+// @Produce      json
+// @Success      200
+// @Failure      400
+// @Failure      500
+// @Router       /auth/login [post]
 func (r *AuthHandler) Login(c *gin.Context)  {
 	var req LoginRequest
 
@@ -112,6 +121,15 @@ func (r *AuthHandler) Login(c *gin.Context)  {
 	}
 }
 
+// Register      godoc
+// @Summary      Registers
+// @Description  Registers
+// @Accept       json
+// @Produce      json
+// @Success      200
+// @Failure      400
+// @Failure      500
+// @Router       /auth/register [post]
 func (r *AuthHandler) Register(c *gin.Context) {
 	var req RegisterRequest
 
@@ -146,6 +164,15 @@ func (r *AuthHandler) Register(c *gin.Context) {
 	}
 }
 
+// Refresh       godoc
+// @Summary      Refreshes
+// @Description  Refreshes
+// @Accept       json
+// @Produce      json
+// @Success      200
+// @Failure      400
+// @Failure      500
+// @Router       /auth/refresh [post]
 func (r *AuthHandler) Refresh(c* gin.Context) {
 	var req RefreshRequest
     if err := c.ShouldBindJSON(&req); err != nil {

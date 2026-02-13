@@ -6,25 +6,63 @@ import (
 	"wyvern/server/internal/service"
 	"wyvern/server/internal/transport/http/handler"
 	"wyvern/server/internal/transport/http/middleware"
+
+	_ "wyvern/server/docs"
+
 	"github.com/gin-gonic/gin"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+// @title           Swagger Example API
+// @version         1.0
+// @description     This is a sample server celler server.
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   API Support
+// @contact.url    http://www.swagger.io/support
+// @contact.email  support@swagger.io
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      localhost:5000
+// @BasePath  /
+
+// @securityDefinitions.basic  BasicAuth
+
+// @externalDocs.description  OpenAPI
+// @externalDocs.url          https://swagger.io/resources/open-api/
+
+// HealthCheck godoc
+// @Summary      Health check
+// @Description  Checks if server running
+// @Accept       json
+// @Produce      json
+// @Success      200
+// @Failure      400  
+// @Failure      500
+// @Router       /health [get]
 func addRoutes(router     *gin.Engine, 
 			   logger     *slog.Logger, 
 			   authSvc    *service.AuthService,
 		       sessionSvc *service.SessionService,
 		   	   tokenSvc   *service.TokenService) {
+
+
+	authHandler := handler.NewAuthHandler(logger, authSvc, sessionSvc)
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
+
 	router.GET("/health", func(c *gin.Context) {
 		c.String(200, "OK")
 	})
 
-	authHandler := handler.NewAuthHandler(logger, authSvc, sessionSvc)
-
-	public := router.Group("/auth")
+	auth := router.Group("/auth")
     {
-        public.POST("/login",    authHandler.Login)
-        public.POST("/register", authHandler.Register)
-        public.POST("/refresh",  authHandler.Refresh)
+        auth.POST("/login",    authHandler.Login)
+        auth.POST("/register", authHandler.Register)
+        auth.POST("/refresh",  authHandler.Refresh)
     }
 
     protected := router.Group("/api")
@@ -37,7 +75,6 @@ func addRoutes(router     *gin.Engine,
 			})
 		}
 
-
 		members := guilds.Group("members")
 		{
 			members.GET("/", func(c *gin.Context) {
@@ -48,7 +85,6 @@ func addRoutes(router     *gin.Engine,
 				c.String(200, "member: " + c.Param("userId"))
 			})
 		}
-
 
 		channels := guilds.Group("channels")
 		{

@@ -1,0 +1,97 @@
+basePath: /
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+host: localhost:5000
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a sample server celler server.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Swagger Example API
+  version: "1.0"
+paths:
+  /api/guilds:
+    get:
+      consumes:
+      - application/json
+      description: Gets guilds
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      summary: Gets guilds
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Logs in
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      summary: Logs in
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Refreshes
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      summary: Refreshes
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Registers
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      summary: Registers
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Checks if server running
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      summary: Health check
+securityDefinitions:
+  BasicAuth:
+    type: basic
+swagger: "2.0"
