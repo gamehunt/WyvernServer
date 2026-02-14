@@ -17,3 +17,7 @@ db.createCollection('members')
 db.members.createIndex({ "user_id":  1, "guild_id": 1 }, { unique: true })
 db.members.createIndex({ "guild_id": 1 })
 db.members.createIndex({ "user_id":  1 })
+
+db.createCollection('roles')
+db.createCollection('permission_overrides')
+db.createCollection('messages')

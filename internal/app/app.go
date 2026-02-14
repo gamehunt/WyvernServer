@@ -48,6 +48,10 @@ func New(cfg config.Config) (*App, error) {
 
 	userRepo    := mongoimpl.NewUserRepository(mongoClient, cfg.Mongo.Database)
 	sessionRepo := mongoimpl.NewSessionRepository(mongoClient, cfg.Mongo.Database)
+	membersRepo := mongoimpl.NewMemberRepository(mongoClient, cfg.Mongo.Database)
+	rolesRepo   := mongoimpl.NewRoleRepository(mongoClient, cfg.Mongo.Database)
+	guildRepo   := mongoimpl.NewGuildRepository(mongoClient, cfg.Mongo.Database)
+	permsOverrideRepo := mongoimpl.NewPermissionOverrideRepository(mongoClient, cfg.Mongo.Database)
 
 	keyringStorage     := redis.NewKeyringStorage(redisClient)
 	opaqueSessionCache := redis.NewOpaqueSessionCache(redisClient)
@@ -55,8 +59,11 @@ func New(cfg config.Config) (*App, error) {
 	authSvc    := service.NewAuthService(userRepo, opaqueSessionCache, cfg.Auth)
 	tokenSvc   := service.NewTokenService(keyringStorage)
 	sessionSvc := service.NewSessionService(keyringStorage, sessionRepo, tokenSvc)
+	membersSvc := service.NewMemberService(membersRepo, rolesRepo)
+	permsSvc   := service.NewPermissionService(permsOverrideRepo, membersRepo, rolesRepo)
+	guildsSvc  := service.NewGuildService(guildRepo, membersSvc, permsSvc)
 
-	handler := transporthttp.NewRouter(log, authSvc, sessionSvc, tokenSvc)
+	handler := transporthttp.NewRouter(log, authSvc, sessionSvc, tokenSvc, guildsSvc, membersSvc)
 
 	httpServer := &nethttp.Server{
 		Addr:         net.JoinHostPort(cfg.Server.Host, strconv.Itoa(cfg.Server.Port)),

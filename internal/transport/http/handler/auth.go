@@ -3,6 +3,7 @@ package handler
 import (
 	"log/slog"
 	"net/http"
+	"wyvern/server/internal/pkg/util"
 	"wyvern/server/internal/service"
 	"wyvern/server/internal/types"
 
@@ -51,18 +52,18 @@ type RefreshResponse struct {
 }
 
 type AuthHandler struct {
-	Logger         *slog.Logger
-	AuthService    *service.AuthService 
-	SessionService *service.SessionService
+	logger         *slog.Logger
+	authService    *service.AuthService 
+	sessionService *service.SessionService
 }
 
 func NewAuthHandler(logger *slog.Logger, 
 	authService *service.AuthService, 
 	sessionService *service.SessionService) *AuthHandler {
 	return &AuthHandler{
-		Logger: logger,
-		AuthService: authService,
-		SessionService: sessionService,
+		logger: logger,
+		authService: authService,
+		sessionService: sessionService,
 	}
 }
 
@@ -79,15 +80,15 @@ func (r *AuthHandler) Login(c *gin.Context)  {
 	var req LoginRequest
 
     if err := c.ShouldBindJSON(&req); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		util.HttpError(c, http.StatusBadRequest, err)
         return
     }
 
 	if req.Identity != nil {
-		ke2, identity, opaqueId, err := r.AuthService.StartLogin(*req.Identity, req.Payload)
+		ke2, identity, opaqueId, err := r.authService.StartLogin(*req.Identity, req.Payload)
 
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			util.HttpError(c, http.StatusBadRequest, err)
 		} else {
 			resp := LoginResponse{
 				Identity:   identity,
@@ -97,15 +98,15 @@ func (r *AuthHandler) Login(c *gin.Context)  {
 			c.JSON(http.StatusOK, resp)
 		}
 	} else if req.OpaqueId != nil {
-		sessionKey, userId, err := r.AuthService.FinishLogin(*req.OpaqueId, req.Payload)
+		sessionKey, userId, err := r.authService.FinishLogin(*req.OpaqueId, req.Payload)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			util.HttpError(c, http.StatusBadRequest, err)
 			return
 		}
 
-		session, refreshToken, accessToken, err := r.SessionService.NewSession(*userId, sessionKey)
+		session, refreshToken, accessToken, err := r.sessionService.NewSession(*userId, sessionKey)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			util.HttpError(c, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -117,7 +118,7 @@ func (r *AuthHandler) Login(c *gin.Context)  {
 
 		c.JSON(http.StatusOK, loginResponse)
 	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Request"})
+		util.HttpErrorString(c, http.StatusBadRequest, "Invalid request")
 	}
 }
 
@@ -134,15 +135,15 @@ func (r *AuthHandler) Register(c *gin.Context) {
 	var req RegisterRequest
 
     if err := c.ShouldBindJSON(&req); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		util.HttpError(c, http.StatusBadRequest, err)
         return
     }
 
 	if req.Identity == nil {
-		payload, identity, userId, err := r.AuthService.StartRegister(req.Payload)
+		payload, identity, userId, err := r.authService.StartRegister(req.Payload)
 
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			util.HttpError(c, http.StatusBadRequest, err)
 			return
 		}
 
@@ -154,9 +155,9 @@ func (r *AuthHandler) Register(c *gin.Context) {
 		
 		c.JSON(http.StatusOK, resp)
 	} else {
-		err := r.AuthService.FinishRegister(*req.UserId, *req.Identity, req.Payload)
+		err := r.authService.FinishRegister(*req.UserId, *req.Identity, req.Payload)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			util.HttpError(c, http.StatusBadRequest, err)
 			return
 		}
 
@@ -176,14 +177,14 @@ func (r *AuthHandler) Register(c *gin.Context) {
 func (r *AuthHandler) Refresh(c* gin.Context) {
 	var req RefreshRequest
     if err := c.ShouldBindJSON(&req); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		util.HttpError(c, http.StatusBadRequest, err)
         return
     }
 
-	accessToken, err := r.SessionService.RefreshSession(req.SessionId, req.RefreshToken, req.Proof, req.Nonce) 
+	accessToken, err := r.sessionService.RefreshSession(req.SessionId, req.RefreshToken, req.Proof, req.Nonce) 
 
 	if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		util.HttpError(c, http.StatusBadRequest, err)
 		return 
 	}
 

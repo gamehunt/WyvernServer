@@ -1,5 +1,6 @@
 package mongo
 
+
 import (
 	"context"
 	"time"
@@ -11,17 +12,17 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
-type GuildRepositoryImpl struct {
+type RoleRepositoryImpl struct {
     collection *mongo.Collection
 }
 
-func NewGuildRepository(client *mongo.Client, name string) repository.GuildRepository {
-    return &GuildRepositoryImpl{
-        collection: client.Database(name).Collection("guilds"),
+func NewRoleRepository(client *mongo.Client, name string) repository.RoleRepository {
+    return &RoleRepositoryImpl{
+        collection: client.Database(name).Collection("roles"),
     }
 }
 
-func (r *GuildRepositoryImpl) Create(guild *domain.Guild) error {
+func (r *RoleRepositoryImpl) Create(guild *domain.Role) error {
     ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
     defer cancel()
 
@@ -29,7 +30,7 @@ func (r *GuildRepositoryImpl) Create(guild *domain.Guild) error {
     return err
 }
 
-func (r *GuildRepositoryImpl) Update(guild *domain.Guild) error {
+func (r *RoleRepositoryImpl) Update(guild *domain.Role) error {
     ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
     defer cancel()
 
@@ -40,19 +41,19 @@ func (r *GuildRepositoryImpl) Update(guild *domain.Guild) error {
     return err
 }
 
-func (r *GuildRepositoryImpl) Delete(id types.ID) error {
+func (r *RoleRepositoryImpl) Delete(id types.ID) error {
     ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
     defer cancel()
 	_, err := r.collection.DeleteOne(ctx, bson.M{"id": id})
 	return err
 }
 
-func (r *GuildRepositoryImpl) FindByID(id types.ID) (*domain.Guild, error) {
+func (r *RoleRepositoryImpl) FindByID(id types.ID) (*domain.Role, error) {
     ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
     defer cancel()
 
-	var guild domain.Guild
-	err := r.collection.FindOne(ctx, bson.M{"id": id}).Decode(&guild)
+	var role domain.Role
+	err := r.collection.FindOne(ctx, bson.M{"id": id}).Decode(&role)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -61,10 +62,11 @@ func (r *GuildRepositoryImpl) FindByID(id types.ID) (*domain.Guild, error) {
 		return nil, err
 	}
 
-    return &guild, nil
+    return &role, nil
 }
 
-func (r *GuildRepositoryImpl) FindByIDs(ids []types.ID) ([]domain.Guild, error) {
+
+func (r *RoleRepositoryImpl) FindByIDs(ids []types.ID) ([]domain.Role, error) {
     ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
     defer cancel()
 
@@ -79,16 +81,45 @@ func (r *GuildRepositoryImpl) FindByIDs(ids []types.ID) ([]domain.Guild, error) 
 
 	defer entries.Close(ctx)
 
-	var guilds []domain.Guild
+	var roles []domain.Role
     for entries.Next(context.TODO()) {
-        var r domain.Guild
+        var r domain.Role
         err := entries.Decode(&r)
         if err != nil {
 			return nil, err
         }
 
-        guilds = append(guilds, r)
+        roles = append(roles, r)
     }
 
-    return guilds, nil
+    return roles, nil
+}
+
+func (r *RoleRepositoryImpl) FindByGuild(guildId types.ID) ([]domain.Role, error) {
+    ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+    defer cancel()
+
+	entries, err := r.collection.Find(ctx, bson.M{"guild_id": guildId})
+
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	defer entries.Close(ctx)
+
+	var roles []domain.Role
+    for entries.Next(context.TODO()) {
+        var r domain.Role
+        err := entries.Decode(&r)
+        if err != nil {
+			return nil, err
+        }
+
+        roles = append(roles, r)
+    }
+
+    return roles, nil
 }

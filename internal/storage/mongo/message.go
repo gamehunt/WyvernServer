@@ -17,7 +17,7 @@ type MessageRepositoryImpl struct {
 
 func NewMessageRepository(client *mongo.Client, name string) repository.MessageRepository {
     return &MessageRepositoryImpl{
-        collection: client.Database(name).Collection("channels"),
+        collection: client.Database(name).Collection("messages"),
     }
 }
 

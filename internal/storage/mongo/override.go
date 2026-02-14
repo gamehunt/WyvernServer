@@ -11,17 +11,18 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
-type GuildRepositoryImpl struct {
+
+type PermissionOverrideRepositoryImpl struct {
     collection *mongo.Collection
 }
 
-func NewGuildRepository(client *mongo.Client, name string) repository.GuildRepository {
-    return &GuildRepositoryImpl{
-        collection: client.Database(name).Collection("guilds"),
+func NewPermissionOverrideRepository(client *mongo.Client, name string) repository.PermissionOverrideRepository {
+    return &PermissionOverrideRepositoryImpl{
+        collection: client.Database(name).Collection("permission_overrides"),
     }
 }
 
-func (r *GuildRepositoryImpl) Create(guild *domain.Guild) error {
+func (r *PermissionOverrideRepositoryImpl) Create(guild *domain.PermissionOverride) error {
     ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
     defer cancel()
 
@@ -29,7 +30,7 @@ func (r *GuildRepositoryImpl) Create(guild *domain.Guild) error {
     return err
 }
 
-func (r *GuildRepositoryImpl) Update(guild *domain.Guild) error {
+func (r *PermissionOverrideRepositoryImpl) Update(guild *domain.PermissionOverride) error {
     ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
     defer cancel()
 
@@ -40,19 +41,19 @@ func (r *GuildRepositoryImpl) Update(guild *domain.Guild) error {
     return err
 }
 
-func (r *GuildRepositoryImpl) Delete(id types.ID) error {
+func (r *PermissionOverrideRepositoryImpl) Delete(id types.ID) error {
     ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
     defer cancel()
 	_, err := r.collection.DeleteOne(ctx, bson.M{"id": id})
 	return err
 }
 
-func (r *GuildRepositoryImpl) FindByID(id types.ID) (*domain.Guild, error) {
+func (r *PermissionOverrideRepositoryImpl) FindByID(id types.ID) (*domain.PermissionOverride, error) {
     ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
     defer cancel()
 
-	var guild domain.Guild
-	err := r.collection.FindOne(ctx, bson.M{"id": id}).Decode(&guild)
+	var override domain.PermissionOverride
+	err := r.collection.FindOne(ctx, bson.M{"id": id}).Decode(&override)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -61,14 +62,14 @@ func (r *GuildRepositoryImpl) FindByID(id types.ID) (*domain.Guild, error) {
 		return nil, err
 	}
 
-    return &guild, nil
+    return &override, nil
 }
 
-func (r *GuildRepositoryImpl) FindByIDs(ids []types.ID) ([]domain.Guild, error) {
+func (r *PermissionOverrideRepositoryImpl) FindByChannel(channelId types.ID) ([]domain.PermissionOverride, error) {
     ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
     defer cancel()
 
-	entries, err := r.collection.Find(ctx, bson.M{"id": bson.M{"$in": ids}})
+	entries, err := r.collection.Find(ctx, bson.M{"channel_id": channelId})
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -79,16 +80,16 @@ func (r *GuildRepositoryImpl) FindByIDs(ids []types.ID) ([]domain.Guild, error) 
 
 	defer entries.Close(ctx)
 
-	var guilds []domain.Guild
+	var permOverrides []domain.PermissionOverride
     for entries.Next(context.TODO()) {
-        var r domain.Guild
+        var r domain.PermissionOverride
         err := entries.Decode(&r)
         if err != nil {
 			return nil, err
         }
 
-        guilds = append(guilds, r)
+        permOverrides = append(permOverrides, r)
     }
 
-    return guilds, nil
+    return permOverrides, nil
 }

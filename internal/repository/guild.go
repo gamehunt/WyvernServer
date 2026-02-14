@@ -11,4 +11,5 @@ type GuildRepository interface {
 	Delete(id types.ID)         error
 
 	FindByID(id types.ID) (*domain.Guild, error)
+	FindByIDs(ids []types.ID) ([]domain.Guild, error)
 }

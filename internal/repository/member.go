@@ -11,6 +11,6 @@ type MemberRepository interface {
 	Delete(userId types.ID, guildId types.ID) error
 
 	FindByGuild(guildId types.ID)  ([]domain.Member, error)
-	GetForUser(userId types.ID, guildId types.ID) (*domain.Member, error)
-	GetUserGuilds(userId types.ID) ([]domain.Guild, error)
+	FindByUser(userId types.ID)  ([]domain.Member, error)
+	GetForUser(userId, guildId types.ID) (*domain.Member, error)
 }
