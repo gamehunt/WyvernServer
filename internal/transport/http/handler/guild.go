@@ -47,7 +47,6 @@ func (r *GuildHandler) GetGuild(c *gin.Context)  {
 	c.JSON(http.StatusOK, guild)
 }
 
-
 func (r *GuildHandler) CreateGuild(c *gin.Context)  {
 	var req GuildCreateRequest
 
@@ -81,4 +80,26 @@ func (r *GuildHandler) CreateGuild(c *gin.Context)  {
 	}
 
 	c.JSON(http.StatusOK, guild)
+}
+
+func (r *GuildHandler) DeleteGuild(c *gin.Context)  {
+	guildId, err := types.ParseID(c.Param("guildId"))
+	if err != nil {
+		util.HttpError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	requesterId, err := types.ParseID(c.Param("userId"))
+	if err != nil {
+		util.HttpError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	err = r.guildService.DeleteGuild(requesterId, guildId)
+	if err != nil {
+		util.HttpError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }

@@ -42,6 +42,10 @@ func (s *MemberService) LeaveGuild(userId, guildId types.ID) error {
 	return s.memberRepo.Delete(userId, guildId)
 }
 
+func (s *MemberService) ClearGuild(guildId types.ID) error {
+	return s.memberRepo.DeleteByGuild(guildId)
+}
+
 func (s *MemberService) GetMember(guildId, userId types.ID) (*domain.Member, error) {
 	return s.memberRepo.GetForUser(userId, guildId)
 }

@@ -93,6 +93,11 @@ func (s *GuildService) DeleteGuild(requesterId, guildId types.ID) error {
 		return errors.InsufficientPerms
 	}
 
+	err = s.membersSvc.ClearGuild(guildId)
+	if err != nil {
+		return err
+	}
+
 	return s.guildRepo.Delete(guildId)
 }
 

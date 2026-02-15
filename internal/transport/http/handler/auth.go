@@ -118,7 +118,7 @@ func (r *AuthHandler) Login(c *gin.Context)  {
 
 		c.JSON(http.StatusOK, loginResponse)
 	} else {
-		util.HttpErrorString(c, http.StatusBadRequest, "Invalid request")
+		c.Status(http.StatusBadRequest)
 	}
 }
 
@@ -161,7 +161,7 @@ func (r *AuthHandler) Register(c *gin.Context) {
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{})	
+		c.Status(http.StatusNoContent)
 	}
 }
 

@@ -62,8 +62,9 @@ func New(cfg config.Config) (*App, error) {
 	membersSvc := service.NewMemberService(membersRepo, rolesRepo)
 	permsSvc   := service.NewPermissionService(permsOverrideRepo, membersRepo, rolesRepo)
 	guildsSvc  := service.NewGuildService(guildRepo, membersSvc, permsSvc)
+	userSvc    := service.NewUserService(userRepo)
 
-	handler := transporthttp.NewRouter(log, authSvc, sessionSvc, tokenSvc, guildsSvc, membersSvc)
+	handler := transporthttp.NewRouter(log, authSvc, sessionSvc, tokenSvc, guildsSvc, membersSvc, userSvc)
 
 	httpServer := &nethttp.Server{
 		Addr:         net.JoinHostPort(cfg.Server.Host, strconv.Itoa(cfg.Server.Port)),

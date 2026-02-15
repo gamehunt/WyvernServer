@@ -28,11 +28,13 @@ func addRoutes(router     *gin.Engine,
 
 			   guildsSvc  *service.GuildService,
 			   membersSvc *service.MemberService,
+			   userSvc    *service.UserService,
 		) {
 
 
-	authHandler   := handler.NewAuthHandler(logger, authSvc, sessionSvc)
-	guildsHandler := handler.NewGuildHandler(logger, guildsSvc, membersSvc)
+	authHandler    := handler.NewAuthHandler(logger, authSvc, sessionSvc)
+	guildsHandler  := handler.NewGuildHandler(logger, guildsSvc, membersSvc)
+	membersHandler := handler.NewMemberHandler(logger, userSvc, membersSvc)
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
@@ -58,17 +60,13 @@ func addRoutes(router     *gin.Engine,
 		guild := guilds.Group(":guildId")	
 		{
 			guild.GET("/", guildsHandler.GetGuild)
+			guild.DELETE("/", guildsHandler.DeleteGuild)
 		}
 
 		members := guild.Group("members")
 		{
-			members.GET("/", func(c *gin.Context) {
-				c.String(200, "members " + c.Param("guildId"))
-			})
-
-			members.GET("/:userId", func(c *gin.Context) {
-				c.String(200, "member: " + c.Param("userId"))
-			})
+			members.GET("/", membersHandler.ListMembers)
+			members.GET("/:userId", membersHandler.GetMember)
 		}
 
 		channels := guild.Group("channels")
@@ -77,7 +75,6 @@ func addRoutes(router     *gin.Engine,
 				c.String(200, "channels " + c.Param("guildId"))
 			})
 		}
-
 
 		channel := channels.Group(":channelId")
 		{
@@ -107,11 +104,12 @@ func NewRouter(
 	tokenSvc   *service.TokenService,
 	guildsSvc  *service.GuildService,
 	membersSvc *service.MemberService,
+	userSvc    *service.UserService,
 ) http.Handler {
 	r := gin.Default()
 
 	addRoutes(r, logger, authSvc, 
-	sessionSvc, tokenSvc, guildsSvc, membersSvc)
+	sessionSvc, tokenSvc, guildsSvc, membersSvc, userSvc)
 
 	return r
 }

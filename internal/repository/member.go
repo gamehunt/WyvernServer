@@ -8,7 +8,8 @@ import (
 type MemberRepository interface {
 	Create(member *domain.Member) error
 	Update(member *domain.Member) error
-	Delete(userId types.ID, guildId types.ID) error
+	Delete(userId, guildId types.ID) error
+	DeleteByGuild(guildId types.ID) error
 
 	FindByGuild(guildId types.ID)  ([]domain.Member, error)
 	FindByUser(userId types.ID)  ([]domain.Member, error)
